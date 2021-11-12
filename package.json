@@ -1,6 +1,6 @@
 {
-  "name": "example-typescript-package",
-  "version": "0.2.2",
+  "name": "dropkit.js",
+  "version": "1.0.0",
   "description": "",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -19,7 +19,7 @@
     "package": "npm run build && npm pack",
     "test": "jest --no-cache --runInBand",
     "test:cov": "jest --coverage --no-cache --runInBand",
-    "addscope": "node tools/packagejson name @tomchen/example-typescript-package"
+    "addscope": "node tools/packagejson name @eventdrip/dropkit.js"
   },
   "publishConfig": {
     "access": "public"
@@ -40,15 +40,15 @@
     "esm",
     "umd"
   ],
-  "author": "Tom Chen <tomchen.org@gmail.com>",
+  "author": "NiftyKit <hello@niftykit.com>",
   "license": "MIT",
-  "homepage": "https://github.com/tomchen/example-typescript-package",
+  "homepage": "https://github.com/eventdrip/dropkit.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:tomchen/example-typescript-package.git"
+    "url": "git@github.com:eventdrip/dropkit.js.git"
   },
   "bugs": {
-    "url": "https://github.com/tomchen/example-typescript-package/issues"
+    "url": "https://github.com/eventdrip/dropkit.js/issues"
   },
   "dependencies": {},
   "devDependencies": {

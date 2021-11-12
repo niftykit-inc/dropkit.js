@@ -1,3 +1,3 @@
-import { Num } from './Num'
+import DropKit from './DropKit'
 
-export { Num }
+export default DropKit
