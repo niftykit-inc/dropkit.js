@@ -11,7 +11,6 @@ export default class DropKit {
   apiKey: string
   dev?: boolean
   address: string
-  networkName: string
   contract: ethers.Contract | null
 
   constructor(key: string, isDev?: boolean) {
@@ -22,7 +21,6 @@ export default class DropKit {
     this.apiKey = key
     this.dev = isDev
     this.address = ''
-    this.networkName = ''
     this.contract = null
   }
 
@@ -40,7 +38,6 @@ export default class DropKit {
 
     if (data) {
       this.address = data.address
-      this.networkName = data.networkName
 
       // const ethereum = (window as any).ethereum!
       const ethereum = (await detectEthereumProvider()) as any
