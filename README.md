@@ -17,10 +17,9 @@ $ npm install dropkit.js
 <script src="https://unpkg.com/dropkit.js-test/dist/umd/index.js"></script>
 
 <script>
-    // On Mint button click
-    $("#mint_btn").click(async function () {
-      const drop = await DropKit.create('x-api-key-here'); // Supply API key
-      await drop.mint(1); // Number of NFTs to mint
-    });
+  document.getElementById('mint_btn').onclick = async function mint() {
+    const drop = await DropKit.create('x-api-key-here'); // Supply API key
+    await drop.mint(1); // Number of NFTs to mint
+  }
 </script>
 ```
