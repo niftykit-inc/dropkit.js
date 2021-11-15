@@ -6,8 +6,9 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, '../dist/umd'),
     filename: 'index.js',
-    library: 'exampleTypescriptPackage',
+    library: 'DropKit',
     libraryTarget: 'umd',
+    libraryExport: "default",
     globalObject: 'this',
   },
   module: {
