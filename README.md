@@ -8,13 +8,13 @@ $ npm install dropkit.js
 
 2. Import via cdn
 ```html
-<script src="https://unpkg.com/dropkit.js-test/dist/umd/index.js"></script>
+<script src="https://unpkg.com/dropkit.js/dist/umd/index.js"></script>
 ```
 
 ## Example
 ```html
 <!-- Import DropKit.js library -->
-<script src="https://unpkg.com/dropkit.js-test/dist/umd/index.js"></script>
+<script src="https://unpkg.com/dropkit.js/dist/umd/index.js"></script>
 
 <script>
   document.getElementById('mint_btn').onclick = async function mint() {
