@@ -51,6 +51,7 @@
     "url": "https://github.com/eventdrip/dropkit.js/issues"
   },
   "dependencies": {
+    "@ethersproject/abi": "^5.5.0",
     "@metamask/detect-provider": "^1.2.0",
     "axios": "^0.24.0",
     "ethers": "^5.5.1",
