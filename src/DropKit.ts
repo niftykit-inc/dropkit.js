@@ -54,8 +54,12 @@ export default class DropKit {
       await ethereum.request({ method: 'eth_requestAccounts' })
 
       const provider = new ethers.providers.Web3Provider(ethereum)
+      const signerOrProvider = provider.getSigner()
 
-      this.contract = DropKitCollection__factory.connect(data.address, provider)
+      this.contract = DropKitCollection__factory.connect(
+        data.address,
+        signerOrProvider
+      )
     }
 
     return data.address
