@@ -74,7 +74,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const dropPrice = await this.contract?._price()
+    const dropPrice = await this.contract?.price()
     return Number(ethers.utils.formatEther(dropPrice))
   }
 
@@ -83,7 +83,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxMint = await await this.contract?._maxPerMint()
+    const maxMint = await await this.contract?.maxPerMint()
     return maxMint.toNumber()
   }
 
@@ -92,7 +92,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxWallet = await await this.contract?._maxPerWallet()
+    const maxWallet = await await this.contract?.maxPerWallet()
     return maxWallet.toNumber()
   }
 
