@@ -1,17 +1,21 @@
+import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
 import { ethers } from 'ethers'
 import {
   ADDRESS_CHECK_ENDPOINT,
   ADDRESS_CHECK_ENDPOINT_DEV,
 } from './config/endpoint'
-import DropKitCollectionABI from './contracts/DropKitCollection.json'
-import detectEthereumProvider from '@metamask/detect-provider'
+import {
+  DropKitCollection,
+  // eslint-disable-next-line camelcase
+  DropKitCollection__factory,
+} from './typechain-types'
 
 export default class DropKit {
   apiKey: string
   dev?: boolean
   address: string
-  contract: ethers.Contract | null
+  contract: DropKitCollection | null
 
   constructor(key: string, isDev?: boolean) {
     if (!key) {
@@ -51,13 +55,7 @@ export default class DropKit {
 
       const provider = new ethers.providers.Web3Provider(ethereum)
 
-      const contract = new ethers.Contract(
-        data.address,
-        DropKitCollectionABI.abi,
-        provider.getSigner()
-      )
-
-      this.contract = contract
+      this.contract = DropKitCollection__factory.connect(data.address, provider)
     }
 
     return data.address
@@ -74,7 +72,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const dropPrice = await this.contract?.price()
+    const dropPrice = await this.contract.price()
     return Number(ethers.utils.formatEther(dropPrice))
   }
 
@@ -83,7 +81,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxMint = await await this.contract?.maxPerMint()
+    const maxMint = await this.contract.maxPerMint()
     return maxMint.toNumber()
   }
 
@@ -92,16 +90,8 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxWallet = await await this.contract?.maxPerWallet()
+    const maxWallet = await this.contract.maxPerWallet()
     return maxWallet.toNumber()
-  }
-
-  async started(): Promise<boolean> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
-    return await this.contract?.started()
   }
 
   async totalSupply(): Promise<number> {
@@ -109,7 +99,7 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const mintedNfts = await this.contract?.totalSupply()
+    const mintedNfts = await this.contract.totalSupply()
     return mintedNfts.toNumber()
   }
 
@@ -120,7 +110,7 @@ export default class DropKit {
 
     const price = await this.price()
 
-    const results = await this.contract?.mint(quantity, {
+    const results = await this.contract.mint(quantity, {
       value: ethers.utils.parseEther(price.toString()).mul(quantity),
     })
     await results.wait()
