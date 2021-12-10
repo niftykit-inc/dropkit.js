@@ -1,6 +1,6 @@
 {
   "name": "dropkit.js",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -53,6 +53,7 @@
   "dependencies": {
     "@ethersproject/abi": "^5.5.0",
     "@metamask/detect-provider": "^1.2.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.3",
     "axios": "^0.24.0",
     "ethers": "^5.5.1",
     "url": "^0.11.0"
