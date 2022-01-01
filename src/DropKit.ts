@@ -5,17 +5,22 @@ import {
   ADDRESS_CHECK_ENDPOINT,
   ADDRESS_CHECK_ENDPOINT_DEV,
 } from './config/endpoint'
-import {
-  DropKitCollection,
-  // eslint-disable-next-line camelcase
-  DropKitCollection__factory,
-} from './typechain-types'
+import DropKitCollectionABI from './contracts/DropKitCollection.json'
+import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
+import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
+
+const abis: Record<number, any> = {
+  2: DropKitCollectionABI.abi,
+  3: DropKitCollectionV2ABI.abi,
+  4: DropKitCollectionV3ABI.abi,
+}
 
 export default class DropKit {
   apiKey: string
   dev?: boolean
   address: string
-  contract: DropKitCollection | null
+  contract: ethers.Contract | null
+  version: number
 
   constructor(key: string, isDev?: boolean) {
     if (!key) {
@@ -26,6 +31,7 @@ export default class DropKit {
     this.dev = isDev
     this.address = ''
     this.contract = null
+    this.version = 0
   }
 
   async init(): Promise<{
@@ -42,6 +48,8 @@ export default class DropKit {
 
     if (data) {
       this.address = data.address
+      this.version = data.version
+      const abi = abis[data.version || 1]
 
       // const ethereum = (window as any).ethereum!
       const ethereum = (await detectEthereumProvider()) as any
@@ -56,10 +64,7 @@ export default class DropKit {
       const provider = new ethers.providers.Web3Provider(ethereum)
       const signerOrProvider = provider.getSigner()
 
-      this.contract = DropKitCollection__factory.connect(
-        data.address,
-        signerOrProvider
-      )
+      this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
     }
 
     return data.address
@@ -76,7 +81,10 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const dropPrice = await this.contract.price()
+    const dropPrice =
+      this.version <= 3
+        ? await this.contract._price()
+        : await this.contract.price()
     return Number(ethers.utils.formatEther(dropPrice))
   }
 
@@ -85,7 +93,11 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxMint = await this.contract.maxPerMint()
+    const maxMint =
+      this.version <= 3
+        ? await this.contract._maxPerMint()
+        : await this.contract.maxPerMint()
+
     return maxMint.toNumber()
   }
 
@@ -94,7 +106,11 @@ export default class DropKit {
       throw new Error('Initialization failed')
     }
 
-    const maxWallet = await this.contract.maxPerWallet()
+    const maxWallet =
+      this.version <= 3
+        ? await this.contract._maxPerWallet()
+        : await this.contract.maxPerWallet()
+
     return maxWallet.toNumber()
   }
 
