@@ -1,10 +1,7 @@
 import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
 import { ethers } from 'ethers'
-import {
-  ADDRESS_CHECK_ENDPOINT,
-  ADDRESS_CHECK_ENDPOINT_DEV,
-} from './config/endpoint'
+import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
@@ -19,7 +16,9 @@ export default class DropKit {
   apiKey: string
   dev?: boolean
   address: string
+  collectionId?: string
   contract: ethers.Contract | null
+  walletAddress?: string
   version: number
 
   constructor(key: string, isDev?: boolean) {
@@ -38,7 +37,7 @@ export default class DropKit {
     address: string
   }> {
     const { data } = await axios.get(
-      this.dev ? ADDRESS_CHECK_ENDPOINT_DEV : ADDRESS_CHECK_ENDPOINT,
+      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/address`,
       {
         headers: {
           'x-api-key': this.apiKey,
@@ -48,6 +47,7 @@ export default class DropKit {
 
     if (data) {
       this.address = data.address
+      this.collectionId = data.collectionId
       this.version = data.version
       const abi = abis[data.version || 1]
 
@@ -64,6 +64,7 @@ export default class DropKit {
       const provider = new ethers.providers.Web3Provider(ethereum)
       const signerOrProvider = provider.getSigner()
 
+      this.walletAddress = await signerOrProvider.getAddress()
       this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
     }
 
@@ -123,18 +124,43 @@ export default class DropKit {
     return mintedNfts.toNumber()
   }
 
-  async mint(quantity: number): Promise<boolean> {
+  async generateProof(): Promise<string> {
+    const { data } = await axios.post(
+      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/list/${
+        this.collectionId
+      }`,
+      {
+        wallet: this.walletAddress,
+      }
+    )
+
+    return data
+  }
+
+  async mint(quantity: number): Promise<void> {
     if (!this.contract) {
       throw new Error('Initialization failed')
     }
-
     const price = await this.price()
+
+    // Presale mint
+    try {
+      const proof = await this.generateProof()
+      const results = await this.contract.presaleMint(quantity, proof, {
+        value: ethers.utils.parseEther(price.toString()).mul(quantity),
+      })
+      await results.wait()
+
+      return
+    } catch (err) {
+      console.log(err)
+    }
 
     const results = await this.contract.mint(quantity, {
       value: ethers.utils.parseEther(price.toString()).mul(quantity),
     })
     await results.wait()
 
-    return true
+    return
   }
 }
