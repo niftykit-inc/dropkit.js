@@ -124,7 +124,7 @@ export default class DropKit {
     return mintedNfts.toNumber()
   }
 
-  async generateProof(): Promise<string> {
+  async generateProof(): Promise<{ proof: Array<string> }> {
     const { data } = await axios.post(
       `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/list/${
         this.collectionId
@@ -145,8 +145,8 @@ export default class DropKit {
 
     // Presale mint
     try {
-      const proof = await this.generateProof()
-      const results = await this.contract.presaleMint(quantity, proof, {
+      const data = await this.generateProof()
+      const results = await this.contract.presaleMint(quantity, data.proof, {
         value: ethers.utils.parseEther(price.toString()).mul(quantity),
       })
       await results.wait()
