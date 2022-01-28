@@ -21,6 +21,10 @@ export default class DropKit {
   walletAddress?: string
   version: number
 
+  private get apiBaseUrl(): string {
+    return this.dev ? API_ENDPOINT_DEV : API_ENDPOINT
+  }
+
   constructor(key: string, isDev?: boolean) {
     if (!key) {
       throw new Error('No API key')
@@ -36,14 +40,11 @@ export default class DropKit {
   async init(): Promise<{
     address: string
   }> {
-    const { data } = await axios.get(
-      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/address`,
-      {
-        headers: {
-          'x-api-key': this.apiKey,
-        },
-      }
-    )
+    const { data } = await axios.get(`${this.apiBaseUrl}/drops/address`, {
+      headers: {
+        'x-api-key': this.apiKey,
+      },
+    })
 
     if (data) {
       this.address = data.address
@@ -126,9 +127,7 @@ export default class DropKit {
 
   async generateProof(): Promise<{ proof: Array<string> }> {
     const { data } = await axios.post(
-      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/list/${
-        this.collectionId
-      }`,
+      `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
       {
         wallet: this.walletAddress,
       }
