@@ -5,6 +5,8 @@ import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
+import { NiftyKitError } from './errors/types'
+import { handleError } from './errors/utils'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -67,62 +69,83 @@ export default class DropKit {
 
       this.walletAddress = await signerOrProvider.getAddress()
       this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
+      if (!this.contract) {
+        throw new Error('Initialization failed')
+      }
     }
 
     return data.address
   }
 
-  static async create(key: string, isDev?: boolean): Promise<DropKit> {
-    const dropKit = new DropKit(key, isDev)
-    await dropKit.init()
-    return dropKit
+  static async create(key: string, isDev?: boolean): Promise<DropKit | null> {
+    try {
+      const dropKit = new DropKit(key, isDev)
+      await dropKit.init()
+      return dropKit
+    } catch (error) {
+      handleError(error as NiftyKitError)
+      return null
+    }
   }
 
   async price(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
     const dropPrice =
       this.version <= 3
-        ? await this.contract._price()
-        : await this.contract.price()
+        ? await this.contract?._price()
+        : await this.contract?.price()
+
     return Number(ethers.utils.formatEther(dropPrice))
   }
 
   async maxPerMint(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
     const maxMint =
       this.version <= 3
-        ? await this.contract._maxPerMint()
-        : await this.contract.maxPerMint()
+        ? await this.contract?._maxPerMint()
+        : await this.contract?.maxPerMint()
 
     return maxMint.toNumber()
   }
 
   async maxPerWallet(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
     const maxWallet =
       this.version <= 3
-        ? await this.contract._maxPerWallet()
-        : await this.contract.maxPerWallet()
+        ? await this.contract?._maxPerWallet()
+        : await this.contract?.maxPerWallet()
 
     return maxWallet.toNumber()
   }
 
+  async walletTokensCount(): Promise<number> {
+    return await this.contract?.balanceOf(this.walletAddress)
+  }
+
   async totalSupply(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
+    const mintedNfts = await this.contract?.totalSupply()
+    return mintedNfts.toNumber()
+  }
+
+  async saleActive(): Promise<boolean> {
+    const saleActive =
+      this.version <= 3
+        ? await this.contract?.started()
+        : await this.contract?.saleActive()
+
+    return saleActive
+  }
+
+  async presaleActive(): Promise<boolean> {
+    // First version of the contract ABI does not have presale
+    if (this.version < 3) {
+      return false
     }
 
-    const mintedNfts = await this.contract.totalSupply()
-    return mintedNfts.toNumber()
+    // Unfortunately, the presaleActive() method is not available in the v2 contracts
+    // So we need to assume that the presale is active and check with generateProof()
+    if (this.version === 3) {
+      return !(await this.saleActive())
+    }
+
+    return await this.contract?.presaleActive()
   }
 
   async generateProof(): Promise<{ proof: Array<string> }> {
@@ -137,29 +160,74 @@ export default class DropKit {
   }
 
   async mint(quantity: number): Promise<void> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-    const price = await this.price()
-
-    // Presale mint
     try {
-      const data = await this.generateProof()
-      const results = await this.contract.presaleMint(quantity, data.proof, {
-        value: ethers.utils.parseEther(price.toString()).mul(quantity),
-      })
-      await results.wait()
+      // safety check
+      quantity = Number(Math.min(quantity, await this.maxPerMint()))
 
-      return
-    } catch (err) {
-      console.log(err)
+      const presaleActive = await this.presaleActive()
+      const saleActive = await this.saleActive()
+
+      const tokensCount = await this.walletTokensCount()
+      const maxPerWallet = await this.maxPerWallet()
+
+      if (tokensCount >= maxPerWallet) {
+        throw new Error(
+          `You can't mint more than ${maxPerWallet} tokens on your wallet`
+        )
+      }
+
+      if (!saleActive && !presaleActive) {
+        throw new Error('Collection is not active')
+      }
+
+      const price = await this.price()
+      const amount = ethers.utils.parseEther(price.toString()).mul(quantity)
+
+      // Presale minting
+      if (presaleActive) {
+        // Backwards compatibility with v2 contracts:
+        // If the public sale is not active, we can still try mint with the presale
+        await this._presaleMint(quantity, amount)
+        return
+      }
+
+      // Regular minting
+      await this._mint(quantity, amount)
+    } catch (error) {
+      handleError(error as NiftyKitError)
+    }
+  }
+
+  private async _mint(
+    quantity: number,
+    amount: ethers.BigNumber
+  ): Promise<void> {
+    const trx = await this.contract?.mint(quantity, {
+      value: amount,
+    })
+
+    await trx.wait()
+  }
+
+  private async _presaleMint(
+    quantity: number,
+    amount: ethers.BigNumber
+  ): Promise<void> {
+    const data = await this.generateProof()
+    if (!data.proof) {
+      // Backwards compatibility for v2 contracts
+      if (this.version === 3) {
+        throw new Error(
+          'Collection is not active or your wallet is not part of presale.'
+        )
+      }
+      throw new Error('Your wallet is not part of presale.')
     }
 
-    const results = await this.contract.mint(quantity, {
-      value: ethers.utils.parseEther(price.toString()).mul(quantity),
+    const trx = await this.contract?.presaleMint(quantity, {
+      value: amount,
     })
-    await results.wait()
 
-    return
+    await trx.wait()
   }
 }
