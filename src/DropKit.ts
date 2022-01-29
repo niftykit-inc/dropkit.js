@@ -1,11 +1,11 @@
 import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
+import { EthereumRpcError } from 'eth-rpc-errors'
 import { ethers } from 'ethers'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
-import { NiftyKitError } from './errors/types'
 import { handleError } from './errors/utils'
 
 const abis: Record<number, any> = {
@@ -83,7 +83,7 @@ export default class DropKit {
       await dropKit.init()
       return dropKit
     } catch (error) {
-      handleError(error as NiftyKitError)
+      handleError(error as EthereumRpcError<unknown>)
       return null
     }
   }
@@ -194,7 +194,7 @@ export default class DropKit {
       // Regular minting
       await this._mint(quantity, amount)
     } catch (error) {
-      handleError(error as NiftyKitError)
+      handleError(error as EthereumRpcError<unknown>)
     }
   }
 

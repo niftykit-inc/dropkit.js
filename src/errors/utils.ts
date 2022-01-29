@@ -1,7 +1,7 @@
-import { NiftyKitError } from './types'
+import { EthereumRpcError } from 'eth-rpc-errors'
 
-export function handleError(e: NiftyKitError): void {
-  const msg = e?.error?.message || e.message
+export function handleError(e: EthereumRpcError<unknown>): void {
+  const msg = e.message
   // checks if the user has metamask installed
   if (msg.includes('missing provider') || msg.includes('No provider found')) {
     throw new Error(
@@ -9,6 +9,8 @@ export function handleError(e: NiftyKitError): void {
     )
   }
 
+  // ideally we would check for the error code here, but the same error code (-32000)
+  // is used for more than one error type.
   if (msg.includes('err: insufficient funds for gas * price + value')) {
     throw new Error('You do not have enough balance.')
   }
