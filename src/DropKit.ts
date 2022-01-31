@@ -13,6 +13,7 @@ import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
 import { handleError } from './errors/utils'
+import { DropApiResponse, ErrorApiResponse } from './types/api-responses'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -45,42 +46,57 @@ export default class DropKit {
     this.version = 0
   }
 
-  async init(): Promise<{
-    address: string
-  }> {
-    const { data } = await axios.get(`${this.apiBaseUrl}/drops/address`, {
-      headers: {
-        'x-api-key': this.apiKey,
-      },
-    })
-
-    if (data) {
-      this.address = data.address
-      this.collectionId = data.collectionId
-      this.version = data.version
-      const abi = abis[data.version || 1]
-
-      // const ethereum = (window as any).ethereum!
-      const ethereum = (await detectEthereumProvider()) as any
-
-      if (!ethereum) {
-        throw new Error('No provider found')
+  async init(): Promise<DropApiResponse> {
+    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(
+      `${this.apiBaseUrl}/drops/address`,
+      {
+        headers: {
+          'x-api-key': this.apiKey,
+        },
+        validateStatus: (status) => status < 500,
       }
+    )
 
-      // Connect to metamask
-      await ethereum.request({ method: 'eth_requestAccounts' })
-
-      const provider = new ethers.providers.Web3Provider(ethereum)
-      const signerOrProvider = provider.getSigner()
-
-      this.walletAddress = await signerOrProvider.getAddress()
-      this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
-      if (!this.contract) {
-        throw new Error('Initialization failed')
-      }
+    if (resp.status === 401) {
+      const { message } = resp.data as ErrorApiResponse
+      throw new Error(message)
     }
 
-    return data.address
+    if (resp.status !== 200) {
+      throw new Error('Something went wrong.')
+    }
+
+    const data = resp.data
+
+    if (!data || !data.address || !data.collectionId) {
+      throw new Error('Collection is not ready yet.')
+    }
+
+    this.address = data.address
+    this.collectionId = data.collectionId
+    this.version = data.version
+    const abi = abis[data.version || 1]
+
+    // const ethereum = (window as any).ethereum!
+    const ethereum = (await detectEthereumProvider()) as any
+
+    if (!ethereum) {
+      throw new Error('No provider found')
+    }
+
+    // Connect to metamask
+    await ethereum.request({ method: 'eth_requestAccounts' })
+
+    const provider = new ethers.providers.Web3Provider(ethereum)
+    const signerOrProvider = provider.getSigner()
+
+    this.walletAddress = await signerOrProvider.getAddress()
+    this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
+    if (!this.contract) {
+      throw new Error('Initialization failed.')
+    }
+
+    return data
   }
 
   static async create(key: string, isDev?: boolean): Promise<DropKit | null> {
