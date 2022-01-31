@@ -15,5 +15,5 @@ export function handleError(e: EthereumRpcError<unknown>): void {
     throw new Error('You do not have enough balance.')
   }
 
-  throw e
+  throw Error(e.message)
 }
