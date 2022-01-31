@@ -1,7 +1,13 @@
 import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
 import { EthereumRpcError } from 'eth-rpc-errors'
-import { ethers } from 'ethers'
+import {
+  ethers,
+  Contract,
+  BigNumber,
+  ContractTransaction,
+  ContractReceipt,
+} from 'ethers'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
@@ -19,7 +25,7 @@ export default class DropKit {
   dev?: boolean
   address: string
   collectionId?: string
-  contract: ethers.Contract | null
+  contract: Contract | null
   walletAddress?: string
   version: number
 
@@ -88,17 +94,17 @@ export default class DropKit {
     }
   }
 
-  async price(): Promise<number> {
-    const dropPrice =
+  async price(): Promise<BigNumber> {
+    const dropPrice: BigNumber =
       this.version <= 3
         ? await this.contract?._price()
         : await this.contract?.price()
 
-    return Number(ethers.utils.formatEther(dropPrice))
+    return dropPrice
   }
 
   async maxPerMint(): Promise<number> {
-    const maxMint =
+    const maxMint: BigNumber =
       this.version <= 3
         ? await this.contract?._maxPerMint()
         : await this.contract?.maxPerMint()
@@ -107,7 +113,7 @@ export default class DropKit {
   }
 
   async maxPerWallet(): Promise<number> {
-    const maxWallet =
+    const maxWallet: BigNumber =
       this.version <= 3
         ? await this.contract?._maxPerWallet()
         : await this.contract?.maxPerWallet()
@@ -116,16 +122,20 @@ export default class DropKit {
   }
 
   async walletTokensCount(): Promise<number> {
-    return await this.contract?.balanceOf(this.walletAddress)
+    const balanceOf: BigNumber = await this.contract?.balanceOf(
+      this.walletAddress
+    )
+
+    return balanceOf.toNumber()
   }
 
   async totalSupply(): Promise<number> {
-    const mintedNfts = await this.contract?.totalSupply()
+    const mintedNfts: BigNumber = await this.contract?.totalSupply()
     return mintedNfts.toNumber()
   }
 
   async saleActive(): Promise<boolean> {
-    const saleActive =
+    const saleActive: boolean =
       this.version <= 3
         ? await this.contract?.started()
         : await this.contract?.saleActive()
@@ -159,7 +169,7 @@ export default class DropKit {
     return data
   }
 
-  async mint(quantity: number): Promise<void> {
+  async mint(quantity: number): Promise<ContractReceipt | null> {
     try {
       // safety check
       quantity = Number(Math.min(quantity, await this.maxPerMint()))
@@ -181,38 +191,38 @@ export default class DropKit {
       }
 
       const price = await this.price()
-      const amount = ethers.utils.parseEther(price.toString()).mul(quantity)
+      const amount = price.mul(quantity)
 
       // Presale minting
       if (presaleActive) {
         // Backwards compatibility with v2 contracts:
         // If the public sale is not active, we can still try mint with the presale
-        await this._presaleMint(quantity, amount)
-        return
+        return await this._presaleMint(quantity, amount)
       }
 
       // Regular minting
-      await this._mint(quantity, amount)
+      return await this._mint(quantity, amount)
     } catch (error) {
       handleError(error as EthereumRpcError<unknown>)
+      return null
     }
   }
 
   private async _mint(
     quantity: number,
-    amount: ethers.BigNumber
-  ): Promise<void> {
-    const trx = await this.contract?.mint(quantity, {
+    amount: BigNumber
+  ): Promise<ContractReceipt> {
+    const trx: ContractTransaction = await this.contract?.mint(quantity, {
       value: amount,
     })
 
-    await trx.wait()
+    return trx.wait()
   }
 
   private async _presaleMint(
     quantity: number,
-    amount: ethers.BigNumber
-  ): Promise<void> {
+    amount: BigNumber
+  ): Promise<ContractReceipt> {
     const data = await this.generateProof()
     if (!data.proof) {
       // Backwards compatibility for v2 contracts
@@ -224,10 +234,13 @@ export default class DropKit {
       throw new Error('Your wallet is not part of presale.')
     }
 
-    const trx = await this.contract?.presaleMint(quantity, {
-      value: amount,
-    })
+    const trx: ContractTransaction = await this.contract?.presaleMint(
+      quantity,
+      {
+        value: amount,
+      }
+    )
 
-    await trx.wait()
+    return trx.wait()
   }
 }
