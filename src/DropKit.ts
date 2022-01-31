@@ -13,7 +13,7 @@ import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
 import { handleError } from './errors/utils'
-import { DropApiResponse, ErrorApiResponse } from './types/api-responses'
+import { DropApiResponse, ErrorApiResponse, ProofApiResponse } from './types/api-responses'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -174,11 +174,14 @@ export default class DropKit {
     return await this.contract?.presaleActive()
   }
 
-  async generateProof(): Promise<{ proof: Array<string> }> {
-    const { data } = await axios.post(
+  async generateProof(): Promise<ProofApiResponse> {
+    const { data } = await axios.post<ProofApiResponse>(
       `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
       {
         wallet: this.walletAddress,
+      },
+      {
+        validateStatus: (status) => status < 500,
       }
     )
 
