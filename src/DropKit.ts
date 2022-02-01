@@ -174,8 +174,8 @@ export default class DropKit {
     return await this.contract?.presaleActive()
   }
 
-  async generateProof(): Promise<ProofApiResponse> {
-    const { data } = await axios.post<ProofApiResponse>(
+  async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
+    const { data } = await axios.post<ProofApiResponse & ErrorApiResponse>(
       `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
       {
         wallet: this.walletAddress,
@@ -243,7 +243,7 @@ export default class DropKit {
     amount: BigNumber
   ): Promise<ContractReceipt> {
     const data = await this.generateProof()
-    if (!data.proof) {
+    if (data.message) {
       // Backwards compatibility for v2 contracts
       if (this.version === 3) {
         throw new Error(
@@ -255,6 +255,7 @@ export default class DropKit {
 
     const trx: ContractTransaction = await this.contract?.presaleMint(
       quantity,
+      data.proof,
       {
         value: amount,
       }
