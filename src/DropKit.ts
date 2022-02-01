@@ -13,7 +13,11 @@ import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
 import { handleError } from './errors/utils'
-import { DropApiResponse, ErrorApiResponse, ProofApiResponse } from './types/api-responses'
+import {
+  DropApiResponse,
+  ErrorApiResponse,
+  ProofApiResponse,
+} from './types/api-responses'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -26,7 +30,7 @@ export default class DropKit {
   dev?: boolean
   address: string
   collectionId?: string
-  contract: Contract | null
+  contract: Contract = {} as Contract
   walletAddress?: string
   version: number
 
@@ -42,7 +46,6 @@ export default class DropKit {
     this.apiKey = key
     this.dev = isDev
     this.address = ''
-    this.contract = null
     this.version = 0
   }
 
@@ -113,8 +116,8 @@ export default class DropKit {
   async price(): Promise<BigNumber> {
     const dropPrice: BigNumber =
       this.version <= 3
-        ? await this.contract?._price()
-        : await this.contract?.price()
+        ? await this.contract._price()
+        : await this.contract.price()
 
     return dropPrice
   }
@@ -122,8 +125,8 @@ export default class DropKit {
   async maxPerMint(): Promise<number> {
     const maxMint: BigNumber =
       this.version <= 3
-        ? await this.contract?._maxPerMint()
-        : await this.contract?.maxPerMint()
+        ? await this.contract._maxPerMint()
+        : await this.contract.maxPerMint()
 
     return maxMint.toNumber()
   }
@@ -131,14 +134,14 @@ export default class DropKit {
   async maxPerWallet(): Promise<number> {
     const maxWallet: BigNumber =
       this.version <= 3
-        ? await this.contract?._maxPerWallet()
-        : await this.contract?.maxPerWallet()
+        ? await this.contract._maxPerWallet()
+        : await this.contract.maxPerWallet()
 
     return maxWallet.toNumber()
   }
 
   async walletTokensCount(): Promise<number> {
-    const balanceOf: BigNumber = await this.contract?.balanceOf(
+    const balanceOf: BigNumber = await this.contract.balanceOf(
       this.walletAddress
     )
 
@@ -146,15 +149,15 @@ export default class DropKit {
   }
 
   async totalSupply(): Promise<number> {
-    const mintedNfts: BigNumber = await this.contract?.totalSupply()
+    const mintedNfts: BigNumber = await this.contract.totalSupply()
     return mintedNfts.toNumber()
   }
 
   async saleActive(): Promise<boolean> {
     const saleActive: boolean =
       this.version <= 3
-        ? await this.contract?.started()
-        : await this.contract?.saleActive()
+        ? await this.contract.started()
+        : await this.contract.saleActive()
 
     return saleActive
   }
@@ -171,7 +174,7 @@ export default class DropKit {
       return !(await this.saleActive())
     }
 
-    return await this.contract?.presaleActive()
+    return await this.contract.presaleActive()
   }
 
   async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
@@ -231,7 +234,7 @@ export default class DropKit {
     quantity: number,
     amount: BigNumber
   ): Promise<ContractReceipt> {
-    const trx: ContractTransaction = await this.contract?.mint(quantity, {
+    const trx: ContractTransaction = await this.contract.mint(quantity, {
       value: amount,
     })
 
@@ -253,7 +256,7 @@ export default class DropKit {
       throw new Error('Your wallet is not part of presale.')
     }
 
-    const trx: ContractTransaction = await this.contract?.presaleMint(
+    const trx: ContractTransaction = await this.contract.presaleMint(
       quantity,
       data.proof,
       {
