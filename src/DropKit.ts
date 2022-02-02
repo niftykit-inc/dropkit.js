@@ -1,10 +1,23 @@
 import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
-import { ethers } from 'ethers'
+import { EthereumRpcError } from 'eth-rpc-errors'
+import {
+  ethers,
+  Contract,
+  BigNumber,
+  ContractTransaction,
+  ContractReceipt,
+} from 'ethers'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
+import { handleError } from './errors/utils'
+import {
+  DropApiResponse,
+  ErrorApiResponse,
+  ProofApiResponse,
+} from './types/api-responses'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -17,9 +30,13 @@ export default class DropKit {
   dev?: boolean
   address: string
   collectionId?: string
-  contract: ethers.Contract | null
+  contract: Contract = {} as Contract
   walletAddress?: string
   version: number
+
+  private get apiBaseUrl(): string {
+    return this.dev ? API_ENDPOINT_DEV : API_ENDPOINT
+  }
 
   constructor(key: string, isDev?: boolean) {
     if (!key) {
@@ -29,72 +46,84 @@ export default class DropKit {
     this.apiKey = key
     this.dev = isDev
     this.address = ''
-    this.contract = null
     this.version = 0
   }
 
-  async init(): Promise<{
-    address: string
-  }> {
-    const { data } = await axios.get(
-      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/address`,
+  async init(): Promise<DropApiResponse> {
+    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(
+      `${this.apiBaseUrl}/drops/address`,
       {
         headers: {
           'x-api-key': this.apiKey,
         },
+        validateStatus: (status) => status < 500,
       }
     )
 
-    if (data) {
-      this.address = data.address
-      this.collectionId = data.collectionId
-      this.version = data.version
-      const abi = abis[data.version || 1]
-
-      // const ethereum = (window as any).ethereum!
-      const ethereum = (await detectEthereumProvider()) as any
-
-      if (!ethereum) {
-        throw new Error('No provider found')
-      }
-
-      // Connect to metamask
-      await ethereum.request({ method: 'eth_requestAccounts' })
-
-      const provider = new ethers.providers.Web3Provider(ethereum)
-      const signerOrProvider = provider.getSigner()
-
-      this.walletAddress = await signerOrProvider.getAddress()
-      this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
+    if (resp.status === 401) {
+      const { message } = resp.data as ErrorApiResponse
+      throw new Error(message)
     }
 
-    return data.address
-  }
+    if (resp.status !== 200) {
+      throw new Error('Something went wrong.')
+    }
 
-  static async create(key: string, isDev?: boolean): Promise<DropKit> {
-    const dropKit = new DropKit(key, isDev)
-    await dropKit.init()
-    return dropKit
-  }
+    const data = resp.data
 
-  async price(): Promise<number> {
+    if (!data || !data.address || !data.collectionId) {
+      throw new Error('Collection is not ready yet.')
+    }
+
+    this.address = data.address
+    this.collectionId = data.collectionId
+    this.version = data.version
+    const abi = abis[data.version || 1]
+
+    // const ethereum = (window as any).ethereum!
+    const ethereum = (await detectEthereumProvider()) as any
+
+    if (!ethereum) {
+      throw new Error('No provider found')
+    }
+
+    // Connect to metamask
+    await ethereum.request({ method: 'eth_requestAccounts' })
+
+    const provider = new ethers.providers.Web3Provider(ethereum)
+    const signerOrProvider = provider.getSigner()
+
+    this.walletAddress = await signerOrProvider.getAddress()
+    this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
     if (!this.contract) {
-      throw new Error('Initialization failed')
+      throw new Error('Initialization failed.')
     }
 
-    const dropPrice =
+    return data
+  }
+
+  static async create(key: string, isDev?: boolean): Promise<DropKit | null> {
+    try {
+      const dropKit = new DropKit(key, isDev)
+      await dropKit.init()
+      return dropKit
+    } catch (error) {
+      handleError(error as EthereumRpcError<unknown>)
+      return null
+    }
+  }
+
+  async price(): Promise<BigNumber> {
+    const dropPrice: BigNumber =
       this.version <= 3
         ? await this.contract._price()
         : await this.contract.price()
-    return Number(ethers.utils.formatEther(dropPrice))
+
+    return dropPrice
   }
 
   async maxPerMint(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
-    const maxMint =
+    const maxMint: BigNumber =
       this.version <= 3
         ? await this.contract._maxPerMint()
         : await this.contract.maxPerMint()
@@ -103,11 +132,7 @@ export default class DropKit {
   }
 
   async maxPerWallet(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-
-    const maxWallet =
+    const maxWallet: BigNumber =
       this.version <= 3
         ? await this.contract._maxPerWallet()
         : await this.contract.maxPerWallet()
@@ -115,52 +140,130 @@ export default class DropKit {
     return maxWallet.toNumber()
   }
 
-  async totalSupply(): Promise<number> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
+  async walletTokensCount(): Promise<number> {
+    const balanceOf: BigNumber = await this.contract.balanceOf(
+      this.walletAddress
+    )
 
-    const mintedNfts = await this.contract.totalSupply()
+    return balanceOf.toNumber()
+  }
+
+  async totalSupply(): Promise<number> {
+    const mintedNfts: BigNumber = await this.contract.totalSupply()
     return mintedNfts.toNumber()
   }
 
-  async generateProof(): Promise<{ proof: Array<string> }> {
-    const { data } = await axios.post(
-      `${this.dev ? API_ENDPOINT_DEV : API_ENDPOINT}/drops/list/${
-        this.collectionId
-      }`,
+  async saleActive(): Promise<boolean> {
+    const saleActive: boolean =
+      this.version <= 3
+        ? await this.contract.started()
+        : await this.contract.saleActive()
+
+    return saleActive
+  }
+
+  async presaleActive(): Promise<boolean> {
+    // First version of the contract ABI does not have presale
+    if (this.version < 3) {
+      return false
+    }
+
+    // Unfortunately, the presaleActive() method is not available in the v2 contracts
+    // So we need to assume that the presale is active and check with generateProof()
+    if (this.version === 3) {
+      return !(await this.saleActive())
+    }
+
+    return await this.contract.presaleActive()
+  }
+
+  async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
+    const { data } = await axios.post<ProofApiResponse & ErrorApiResponse>(
+      `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
       {
         wallet: this.walletAddress,
+      },
+      {
+        validateStatus: (status) => status < 500,
       }
     )
 
     return data
   }
 
-  async mint(quantity: number): Promise<void> {
-    if (!this.contract) {
-      throw new Error('Initialization failed')
-    }
-    const price = await this.price()
-
-    // Presale mint
+  async mint(quantity: number): Promise<ContractReceipt | null> {
     try {
-      const data = await this.generateProof()
-      const results = await this.contract.presaleMint(quantity, data.proof, {
-        value: ethers.utils.parseEther(price.toString()).mul(quantity),
-      })
-      await results.wait()
+      // safety check
+      quantity = Number(Math.min(quantity, await this.maxPerMint()))
 
-      return
-    } catch (err) {
-      console.log(err)
+      const presaleActive = await this.presaleActive()
+      const saleActive = await this.saleActive()
+
+      const tokensCount = await this.walletTokensCount()
+      const maxPerWallet = await this.maxPerWallet()
+
+      if (tokensCount >= maxPerWallet) {
+        throw new Error(
+          `You can't mint more than ${maxPerWallet} tokens on your wallet`
+        )
+      }
+
+      if (!saleActive && !presaleActive) {
+        throw new Error('Collection is not active')
+      }
+
+      const price = await this.price()
+      const amount = price.mul(quantity)
+
+      // Presale minting
+      if (presaleActive) {
+        // Backwards compatibility with v2 contracts:
+        // If the public sale is not active, we can still try mint with the presale
+        return await this._presaleMint(quantity, amount)
+      }
+
+      // Regular minting
+      return await this._mint(quantity, amount)
+    } catch (error) {
+      handleError(error as EthereumRpcError<unknown>)
+      return null
+    }
+  }
+
+  private async _mint(
+    quantity: number,
+    amount: BigNumber
+  ): Promise<ContractReceipt> {
+    const trx: ContractTransaction = await this.contract.mint(quantity, {
+      value: amount,
+    })
+
+    return trx.wait()
+  }
+
+  private async _presaleMint(
+    quantity: number,
+    amount: BigNumber
+  ): Promise<ContractReceipt> {
+    const data = await this.generateProof()
+    if (data.message) {
+      // Backwards compatibility for v2 contracts
+      if (this.version === 3) {
+        throw new Error(
+          'Collection is not active or your wallet is not part of presale.'
+        )
+      }
+      throw new Error('Your wallet is not part of presale.')
     }
 
-    const results = await this.contract.mint(quantity, {
-      value: ethers.utils.parseEther(price.toString()).mul(quantity),
-    })
-    await results.wait()
+    const trx: ContractTransaction = await this.contract.presaleMint(
+      quantity,
+      data.proof,
+      {
+        value: amount,
+      }
+    )
 
-    return
+    return trx.wait()
   }
 }

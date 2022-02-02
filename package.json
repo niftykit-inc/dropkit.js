@@ -55,6 +55,7 @@
     "@metamask/detect-provider": "^1.2.0",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
     "axios": "^0.24.0",
+    "eth-rpc-errors": "^4.0.3",
     "ethers": "^5.5.1",
     "url": "^0.11.0"
   },
