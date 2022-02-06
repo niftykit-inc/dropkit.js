@@ -1,4 +1,3 @@
-import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
 import { EthereumRpcError } from 'eth-rpc-errors'
 import {
@@ -18,6 +17,8 @@ import {
   ErrorApiResponse,
   ProofApiResponse,
 } from './types/api-responses'
+import Web3Modal, { IProviderOptions } from 'web3modal'
+import { PROVIDER_OPTIONS } from './config/providers'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -49,7 +50,7 @@ export default class DropKit {
     this.version = 0
   }
 
-  async init(): Promise<DropApiResponse> {
+  async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
     const resp = await axios.get<DropApiResponse & ErrorApiResponse>(
       `${this.apiBaseUrl}/drops/address`,
       {
@@ -80,21 +81,19 @@ export default class DropKit {
     this.version = data.version
     const abi = abis[data.version || 1]
 
-    // const ethereum = (window as any).ethereum!
-    const ethereum = (await detectEthereumProvider()) as any
-
-    if (!ethereum) {
-      throw new Error('No provider found')
+    const web3Modal = new Web3Modal({
+      providerOptions,
+    })
+    const instance = await web3Modal.connect()
+    if (!instance) {
+      throw new Error('No wallet selected')
     }
 
-    // Connect to metamask
-    await ethereum.request({ method: 'eth_requestAccounts' })
+    const provider = new ethers.providers.Web3Provider(instance)
+    const signer = provider.getSigner()
 
-    const provider = new ethers.providers.Web3Provider(ethereum)
-    const signerOrProvider = provider.getSigner()
-
-    this.walletAddress = await signerOrProvider.getAddress()
-    this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
+    this.walletAddress = await signer.getAddress()
+    this.contract = new ethers.Contract(data.address, abi, signer)
     if (!this.contract) {
       throw new Error('Initialization failed.')
     }
@@ -102,10 +101,14 @@ export default class DropKit {
     return data
   }
 
-  static async create(key: string, isDev?: boolean): Promise<DropKit | null> {
+  static async create(
+    key: string,
+    isDev?: boolean,
+    providerOptions?: IProviderOptions
+  ): Promise<DropKit | null> {
     try {
       const dropKit = new DropKit(key, isDev)
-      await dropKit.init()
+      await dropKit.init(providerOptions || PROVIDER_OPTIONS)
       return dropKit
     } catch (error) {
       handleError(error as EthereumRpcError<unknown>)
