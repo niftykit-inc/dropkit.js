@@ -64,6 +64,7 @@
     "stream-http": "^3.2.0",
     "url": "^0.11.0",
     "util": "^0.12.4",
+    "walletlink": "^2.4.6",
     "web3modal": "^1.9.5"
   },
   "devDependencies": {
