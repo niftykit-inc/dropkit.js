@@ -53,11 +53,17 @@
   "dependencies": {
     "@ethersproject/abi": "^5.5.0",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
+    "@walletconnect/web3-provider": "^1.7.1",
+    "assert": "^2.0.0",
     "axios": "^0.24.0",
-    "dotenv": "^16.0.0",
     "eth-rpc-errors": "^4.0.3",
     "ethers": "^5.5.1",
+    "https-browserify": "^1.0.0",
+    "os-browserify": "^0.3.0",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
     "url": "^0.11.0",
+    "util": "^0.12.4",
     "web3modal": "^1.9.5"
   },
   "devDependencies": {
@@ -67,6 +73,7 @@
     "@types/react": "^17.0.39",
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
+    "dotenv-webpack": "^7.1.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",

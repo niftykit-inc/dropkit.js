@@ -89,6 +89,18 @@ export default class DropKit {
       throw new Error('No wallet selected')
     }
 
+    if (instance.on) {
+      instance.on('disconnect', () => {
+        window.location.reload()
+      })
+      instance.on('accountsChanged', () => {
+        window.location.reload()
+      })
+      instance.on('chainChanged', () => {
+        window.location.reload()
+      })
+    }
+
     const provider = new ethers.providers.Web3Provider(instance)
     const signer = provider.getSigner()
 
