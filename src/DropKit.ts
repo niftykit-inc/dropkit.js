@@ -50,15 +50,13 @@ export default class DropKit {
   }
 
   async init(): Promise<DropApiResponse> {
-    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(
-      `${this.apiBaseUrl}/drops/address`,
-      {
-        headers: {
-          'x-api-key': this.apiKey,
-        },
-        validateStatus: (status) => status < 500,
-      }
-    )
+    const url = `${this.apiBaseUrl}/drops/address`
+    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
+      headers: {
+        'x-api-key': this.apiKey,
+      },
+      validateStatus: (status) => status < 500,
+    })
 
     if (resp.status === 401) {
       const { message } = resp.data as ErrorApiResponse
@@ -177,6 +175,40 @@ export default class DropKit {
     return await this.contract.presaleActive()
   }
 
+  async auctionActive(): Promise<boolean> {
+    if (this.version < 4) {
+      return false
+    }
+    return await this.contract.auctionActive()
+  }
+
+  async auctionDuration(): Promise<number> {
+    if (this.version < 4) {
+      return 0
+    }
+    const duration: BigNumber = await this.contract.auctionDuration()
+
+    return duration.toNumber()
+  }
+
+  async auctionPrice(): Promise<BigNumber> {
+    if (this.version < 4) {
+      return BigNumber.from(0)
+    }
+    const price: BigNumber = await this.contract.auctionPrice()
+
+    return price
+  }
+
+  async auctionStartedAt(): Promise<number> {
+    if (this.version < 4) {
+      return 0
+    }
+    const epoch: BigNumber = await this.contract.auctionStartedAt()
+
+    return epoch.toNumber()
+  }
+
   async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
     const { data } = await axios.post<ProofApiResponse & ErrorApiResponse>(
       `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
@@ -198,6 +230,7 @@ export default class DropKit {
 
       const presaleActive = await this.presaleActive()
       const saleActive = await this.saleActive()
+      const auctionActive = await this.auctionActive()
 
       const tokensCount = await this.walletTokensCount()
       const maxPerWallet = await this.maxPerWallet()
@@ -208,11 +241,13 @@ export default class DropKit {
         )
       }
 
-      if (!saleActive && !presaleActive) {
+      if (!saleActive && !presaleActive && !auctionActive) {
         throw new Error('Collection is not active')
       }
 
-      const price = await this.price()
+      const price = auctionActive
+        ? await this.auctionPrice()
+        : await this.price()
       const amount = price.mul(quantity)
 
       // Presale minting
