@@ -13,5 +13,6 @@ module.exports = {
     'ts-jest': {
       tsconfig: 'tsconfig.json'
     }
-  }
+  },
+  setupFiles: ['dotenv/config']
 }
