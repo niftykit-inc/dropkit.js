@@ -235,7 +235,7 @@ export default class DropKit {
       const tokensCount = await this.walletTokensCount()
       const maxPerWallet = await this.maxPerWallet()
 
-      if (tokensCount >= maxPerWallet) {
+      if (tokensCount + quantity > maxPerWallet) {
         throw new Error(
           `You can't mint more than ${maxPerWallet} tokens on your wallet`
         )
