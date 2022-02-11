@@ -6,6 +6,8 @@ export type DropApiResponse = {
   address: string
   collectionId: string
   version: number
+  chainId: number
+  networkName: string
 }
 
 export type ErrorApiResponse = {

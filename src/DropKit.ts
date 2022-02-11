@@ -19,6 +19,8 @@ import {
 } from './types/api-responses'
 import Web3Modal, { IProviderOptions } from 'web3modal'
 import { PROVIDER_OPTIONS } from './config/providers'
+import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
+import { NETWORKS } from './config/networks'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -34,6 +36,11 @@ export default class DropKit {
   contract: Contract = {} as Contract
   walletAddress?: string
   version: number
+  provider: Web3Provider = {} as Web3Provider
+  signer: JsonRpcSigner = {} as JsonRpcSigner
+  web3ModalInstance: any
+  chainId = 0
+  networkName = ''
 
   private get apiBaseUrl(): string {
     return this.dev ? API_ENDPOINT_DEV : API_ENDPOINT
@@ -51,11 +58,8 @@ export default class DropKit {
   }
 
   async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
-    const url = `${this.apiBaseUrl}/drops/address`
+    const url = `${this.apiBaseUrl}/drops/${this.apiKey}/address`
     const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
-      headers: {
-        'x-api-key': this.apiKey,
-      },
       validateStatus: (status) => status < 500,
     })
 
@@ -77,33 +81,31 @@ export default class DropKit {
     this.address = data.address
     this.collectionId = data.collectionId
     this.version = data.version
+    this.networkName = data.networkName
+    this.chainId = data.chainId
     const abi = abis[data.version || 1]
 
     const web3Modal = new Web3Modal({
       providerOptions,
     })
-    const instance = await web3Modal.connect()
-    if (!instance) {
+    this.web3ModalInstance = await web3Modal.connect()
+    if (!this.web3ModalInstance) {
       throw new Error('No wallet selected')
     }
+    await this._initProvider()
+    await this._checkNetwork()
 
-    if (instance.on) {
-      instance.on('disconnect', () => {
+    if (this.web3ModalInstance.on) {
+      this.web3ModalInstance.on('disconnect', () => {
         window.location.reload()
       })
-      instance.on('accountsChanged', () => {
-        window.location.reload()
-      })
-      instance.on('chainChanged', () => {
+      this.web3ModalInstance.on('accountsChanged', () => {
         window.location.reload()
       })
     }
 
-    const provider = new ethers.providers.Web3Provider(instance)
-    const signer = provider.getSigner()
-
-    this.walletAddress = await signer.getAddress()
-    this.contract = new ethers.Contract(data.address, abi, signer)
+    this.walletAddress = await this.signer.getAddress()
+    this.contract = new ethers.Contract(data.address, abi, this.signer)
     if (!this.contract) {
       throw new Error('Initialization failed.')
     }
@@ -315,5 +317,43 @@ export default class DropKit {
     )
 
     return trx.wait()
+  }
+
+  private async _initProvider(): Promise<void> {
+    this.provider = new ethers.providers.Web3Provider(this.web3ModalInstance)
+    this.signer = this.provider.getSigner()
+  }
+
+  private async _checkNetwork(): Promise<void> {
+    const network = await this.provider.getNetwork()
+    if (this.chainId !== network.chainId) {
+      // see https://docs.metamask.io/guide/rpc-api.html#usage-with-wallet-switchethereumchain
+      try {
+        await this.web3ModalInstance.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${this.chainId.toString(16)}` }],
+        })
+      } catch (error: any) {
+        const switchError = error as EthereumRpcError<unknown>
+        if (switchError.code === 4902) {
+          const network = NETWORKS[this.chainId]
+          if (!network) {
+            throw new Error('Unknown network')
+          }
+          try {
+            await this.web3ModalInstance.request({
+              method: 'wallet_addEthereumChain',
+              params: [network],
+            })
+          } catch (addError: any) {
+            throw addError
+          }
+        } else {
+          throw error
+        }
+      }
+
+      await this._initProvider()
+    }
   }
 }

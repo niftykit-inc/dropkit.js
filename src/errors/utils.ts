@@ -20,5 +20,9 @@ export function handleError(e: EthereumRpcError<unknown>): void {
     throw new Error('Your wallet does not have enough balance.')
   }
 
+  if ((e.code as unknown as string) === 'CALL_EXCEPTION') {
+    throw new Error('Please make sure you are connected to the right network.')
+  }
+
   throw Error(msg)
 }
