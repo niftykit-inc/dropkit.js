@@ -335,7 +335,7 @@ export default class DropKit {
         })
       } catch (error: any) {
         const switchError = error as EthereumRpcError<unknown>
-        if (switchError.code === 4902) {
+        if (switchError.code === 4902 || switchError.code === -32603) {
           const network = NETWORKS[this.chainId]
           if (!network) {
             throw new Error('Unknown network')
