@@ -38,7 +38,7 @@ export default class DropKit {
   version: number
   provider: Web3Provider = {} as Web3Provider
   signer: JsonRpcSigner = {} as JsonRpcSigner
-  web3ModalInstance: any
+  ethInstance: any
   chainId = 0
   networkName = ''
 
@@ -88,18 +88,18 @@ export default class DropKit {
     const web3Modal = new Web3Modal({
       providerOptions,
     })
-    this.web3ModalInstance = await web3Modal.connect()
-    if (!this.web3ModalInstance) {
-      throw new Error('No wallet selected')
+    this.ethInstance = await web3Modal.connect()
+    if (!this.ethInstance) {
+      throw new Error('No provider found')
     }
     await this._initProvider()
     await this._checkNetwork()
 
-    if (this.web3ModalInstance.on) {
-      this.web3ModalInstance.on('disconnect', () => {
+    if (this.ethInstance.on) {
+      this.ethInstance.on('disconnect', () => {
         window.location.reload()
       })
-      this.web3ModalInstance.on('accountsChanged', () => {
+      this.ethInstance.on('accountsChanged', () => {
         window.location.reload()
       })
     }
@@ -320,7 +320,7 @@ export default class DropKit {
   }
 
   private async _initProvider(): Promise<void> {
-    this.provider = new ethers.providers.Web3Provider(this.web3ModalInstance)
+    this.provider = new ethers.providers.Web3Provider(this.ethInstance)
     this.signer = this.provider.getSigner()
   }
 
@@ -329,7 +329,7 @@ export default class DropKit {
     if (this.chainId !== network.chainId) {
       // see https://docs.metamask.io/guide/rpc-api.html#usage-with-wallet-switchethereumchain
       try {
-        await this.web3ModalInstance.request({
+        await this.ethInstance.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: `0x${this.chainId.toString(16)}` }],
         })
@@ -341,7 +341,7 @@ export default class DropKit {
             throw new Error('Unknown network')
           }
           try {
-            await this.web3ModalInstance.request({
+            await this.ethInstance.request({
               method: 'wallet_addEthereumChain',
               params: [network],
             })
