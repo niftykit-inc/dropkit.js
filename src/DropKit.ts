@@ -18,6 +18,8 @@ import {
   ErrorApiResponse,
   ProofApiResponse,
 } from './types/api-responses'
+import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
+import { NETWORKS } from './config/networks'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -33,6 +35,11 @@ export default class DropKit {
   contract: Contract = {} as Contract
   walletAddress?: string
   version: number
+  provider: Web3Provider = {} as Web3Provider
+  signer: JsonRpcSigner = {} as JsonRpcSigner
+  ethInstance: any
+  chainId = 0
+  networkName = ''
 
   private get apiBaseUrl(): string {
     return this.dev ? API_ENDPOINT_DEV : API_ENDPOINT
@@ -50,11 +57,8 @@ export default class DropKit {
   }
 
   async init(): Promise<DropApiResponse> {
-    const url = `${this.apiBaseUrl}/drops/address`
+    const url = `${this.apiBaseUrl}/drops/${this.apiKey}/address`
     const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
-      headers: {
-        'x-api-key': this.apiKey,
-      },
       validateStatus: (status) => status < 500,
     })
 
@@ -76,23 +80,22 @@ export default class DropKit {
     this.address = data.address
     this.collectionId = data.collectionId
     this.version = data.version
+    this.networkName = data.networkName
+    this.chainId = data.chainId
     const abi = abis[data.version || 1]
 
     // const ethereum = (window as any).ethereum!
-    const ethereum = (await detectEthereumProvider()) as any
+    this.ethInstance = (await detectEthereumProvider()) as any
 
-    if (!ethereum) {
+    if (!this.ethInstance) {
       throw new Error('No provider found')
     }
 
-    // Connect to metamask
-    await ethereum.request({ method: 'eth_requestAccounts' })
+    await this._initProvider()
+    await this._checkNetwork()
 
-    const provider = new ethers.providers.Web3Provider(ethereum)
-    const signerOrProvider = provider.getSigner()
-
-    this.walletAddress = await signerOrProvider.getAddress()
-    this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
+    this.walletAddress = await this.signer.getAddress()
+    this.contract = new ethers.Contract(data.address, abi, this.signer)
     if (!this.contract) {
       throw new Error('Initialization failed.')
     }
@@ -300,5 +303,43 @@ export default class DropKit {
     )
 
     return trx.wait()
+  }
+
+  private async _initProvider(): Promise<void> {
+    this.provider = new ethers.providers.Web3Provider(this.ethInstance)
+    this.signer = this.provider.getSigner()
+  }
+
+  private async _checkNetwork(): Promise<void> {
+    const network = await this.provider.getNetwork()
+    if (this.chainId !== network.chainId) {
+      // see https://docs.metamask.io/guide/rpc-api.html#usage-with-wallet-switchethereumchain
+      try {
+        await this.ethInstance.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${this.chainId.toString(16)}` }],
+        })
+      } catch (error: any) {
+        const switchError = error as EthereumRpcError<unknown>
+        if (switchError.code === 4902 || switchError.code === -32603) {
+          const network = NETWORKS[this.chainId]
+          if (!network) {
+            throw new Error('Unknown network')
+          }
+          try {
+            await this.ethInstance.request({
+              method: 'wallet_addEthereumChain',
+              params: [network],
+            })
+          } catch (addError: any) {
+            throw addError
+          }
+        } else {
+          throw error
+        }
+      }
+
+      await this._initProvider()
+    }
   }
 }
