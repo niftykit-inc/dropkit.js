@@ -40,3 +40,5 @@ jobs:
         run: yarn
       - name: Run tests
         run: yarn test
+        env:
+          INFURA_ID: ${{ secrets.INFURA_ID }}

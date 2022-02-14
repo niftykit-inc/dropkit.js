@@ -39,6 +39,7 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          INFURA_ID: ${{ secrets.INFURA_ID }}
       # - name: Setup .npmrc file to publish to GitHub Packages
       #   uses: actions/setup-node@v1
       #   with:
