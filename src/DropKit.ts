@@ -1,4 +1,3 @@
-import detectEthereumProvider from '@metamask/detect-provider'
 import axios from 'axios'
 import { EthereumRpcError } from 'eth-rpc-errors'
 import {
@@ -18,6 +17,8 @@ import {
   ErrorApiResponse,
   ProofApiResponse,
 } from './types/api-responses'
+import Web3Modal, { IProviderOptions } from 'web3modal'
+import { PROVIDER_OPTIONS } from './config/providers'
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { NETWORKS } from './config/networks'
 
@@ -56,7 +57,7 @@ export default class DropKit {
     this.version = 0
   }
 
-  async init(): Promise<DropApiResponse> {
+  async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
     const url = `${this.apiBaseUrl}/drops/${this.apiKey}/address`
     const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
       validateStatus: (status) => status < 500,
@@ -84,15 +85,25 @@ export default class DropKit {
     this.chainId = data.chainId
     const abi = abis[data.version || 1]
 
-    // const ethereum = (window as any).ethereum!
-    this.ethInstance = (await detectEthereumProvider()) as any
-
+    const web3Modal = new Web3Modal({
+      providerOptions,
+    })
+    this.ethInstance = await web3Modal.connect()
     if (!this.ethInstance) {
       throw new Error('No provider found')
     }
 
     await this._initProvider()
     await this._checkNetwork()
+
+    if (this.ethInstance.on) {
+      this.ethInstance.on('disconnect', () => {
+        window.location.reload()
+      })
+      this.ethInstance.on('accountsChanged', () => {
+        window.location.reload()
+      })
+    }
 
     this.walletAddress = await this.signer.getAddress()
     this.contract = new ethers.Contract(data.address, abi, this.signer)
@@ -103,10 +114,14 @@ export default class DropKit {
     return data
   }
 
-  static async create(key: string, isDev?: boolean): Promise<DropKit | null> {
+  static async create(
+    key: string,
+    isDev?: boolean,
+    providerOptions?: IProviderOptions
+  ): Promise<DropKit | null> {
     try {
       const dropKit = new DropKit(key, isDev)
-      await dropKit.init()
+      await dropKit.init(providerOptions || PROVIDER_OPTIONS)
       return dropKit
     } catch (error) {
       handleError(error as EthereumRpcError<unknown>)
