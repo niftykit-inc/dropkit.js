@@ -1,6 +1,6 @@
 const path = require('path')
-const webpack = require('webpack')
-const Dotenv = require('dotenv-webpack');
+const Dotenv = require('dotenv-webpack')
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 
 module.exports = {
   mode: 'production',
@@ -29,25 +29,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js', '.tsx', '.jsx'],
-    fallback: {
-      'util': require.resolve('util/'),
-      'http': require.resolve('stream-http'),
-      'https': require.resolve('https-browserify'),
-      'os': require.resolve('os-browserify/browser'),
-      'assert': require.resolve('assert/'),
-      'stream': require.resolve('stream-browserify'),
-      'buffer': require.resolve('buffer'),
-    }
   },
   plugins: [
-    // // Work around for Buffer is undefined:
-    // // https://github.com/webpack/changelog-v5/issues/10
-    new webpack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-    }),
-    // new webpack.ProvidePlugin({
-    //   process: 'process/browser',
-    // }),
+    new NodePolyfillPlugin(),
     new Dotenv(),
   ]
 }

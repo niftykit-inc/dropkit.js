@@ -1,7 +1,7 @@
 {
   "name": "dropkit.js",
   "version": "0.0.10",
-  "description": "",
+  "description": "NiftyKit.js SDK",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "umd:main": "dist/umd/index.js",
@@ -19,7 +19,7 @@
     "package": "npm run build && npm pack",
     "test": "jest --no-cache --runInBand",
     "test:cov": "jest --coverage --no-cache --runInBand",
-    "addscope": "node tools/packagejson name @eventdrip/dropkit.js"
+    "addscope": "node tools/packagejson name @niftykit-inc/dropkit.js"
   },
   "publishConfig": {
     "access": "public"
@@ -28,44 +28,35 @@
     "dist"
   ],
   "keywords": [
-    "example",
-    "typescript",
-    "npm",
-    "package",
-    "sample",
-    "boilerplate",
-    "starter",
-    "demo",
-    "cjs",
-    "esm",
-    "umd"
+    "NiftyKit",
+    "sdk",
+    "dropkit",
+    "dropkit.js",
+    "web3",
+    "ethers",
+    "web3modal"
   ],
   "author": "NiftyKit <hello@niftykit.com>",
   "license": "MIT",
-  "homepage": "https://github.com/eventdrip/dropkit.js",
+  "homepage": "https://github.com/niftykit-inc/dropkit.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:eventdrip/dropkit.js.git"
+    "url": "git@github.com:niftykit-inc/dropkit.js.git"
   },
   "bugs": {
-    "url": "https://github.com/eventdrip/dropkit.js/issues"
+    "url": "https://github.com/niftykit-inc/dropkit.js/issues"
   },
   "dependencies": {
     "@ethersproject/abi": "^5.5.0",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
-    "@walletconnect/web3-provider": "^1.7.1",
     "@types/react": "^17.0.39",
-    "assert": "^2.0.0",
+    "@walletconnect/web3-provider": "^1.7.1",
     "axios": "^0.24.0",
     "eth-rpc-errors": "^4.0.3",
     "ethers": "^5.5.1",
-    "https-browserify": "^1.0.0",
-    "os-browserify": "^0.3.0",
-    "stream-browserify": "^3.0.0",
-    "stream-http": "^3.2.0",
+    "node-polyfill-webpack-plugin": "^1.1.4",
     "url": "^0.11.0",
-    "util": "^0.12.4",
-    "walletlink": "^2.4.6",
+    "walletlink": "^2.4.7",
     "web3modal": "^1.9.5"
   },
   "devDependencies": {
