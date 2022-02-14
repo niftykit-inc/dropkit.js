@@ -35,6 +35,8 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
+        env:
+          INFURA_ID: ${{ secrets.INFURA_ID }}
       - name: Publish to npm
         run: npm publish --access public
         env:
