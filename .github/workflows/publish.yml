@@ -26,6 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_INFURA_ID: ${{ secrets.INFURA_ID }}
       - name: Setup .npmrc file to publish to npm
         uses: actions/setup-node@v1
         with:
@@ -35,6 +39,8 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
+        env:
+          INFURA_ID: ${{ secrets.INFURA_ID }}
       - name: Publish to npm
         run: npm publish --access public
         env:
