@@ -86,8 +86,8 @@ export default class DropKit {
     const abi = abis[data.version || 1]
 
     const web3Modal = new Web3Modal({
-      providerOptions,
       network: this.networkName,
+      providerOptions,
     })
     this.ethInstance = await web3Modal.connect()
     if (!this.ethInstance) {
