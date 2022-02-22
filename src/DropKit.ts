@@ -87,6 +87,7 @@ export default class DropKit {
 
     const web3Modal = new Web3Modal({
       providerOptions,
+      network: this.networkName,
     })
     this.ethInstance = await web3Modal.connect()
     if (!this.ethInstance) {
