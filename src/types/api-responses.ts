@@ -8,6 +8,7 @@ export type DropApiResponse = {
   version: number
   chainId: number
   networkName: string
+  maxAmount?: number
 }
 
 export type ErrorApiResponse = {
