@@ -36,6 +36,7 @@ export default class DropKit {
   contract: Contract = {} as Contract
   walletAddress?: string
   version: number
+  maxSupply?: number
   provider: Web3Provider = {} as Web3Provider
   signer: JsonRpcSigner = {} as JsonRpcSigner
   ethInstance: any
@@ -55,6 +56,7 @@ export default class DropKit {
     this.dev = isDev
     this.address = ''
     this.version = 0
+    this.maxSupply = 0
   }
 
   async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
@@ -83,6 +85,7 @@ export default class DropKit {
     this.version = data.version
     this.networkName = data.networkName
     this.chainId = data.chainId
+    this.maxSupply = data.version <= 3 ? data.maxAmount : 0
     const abi = abis[data.version || 1]
 
     const web3Modal = new Web3Modal({
@@ -137,6 +140,16 @@ export default class DropKit {
         : await this.contract.price()
 
     return dropPrice
+  }
+
+  async maxAmount(): Promise<number> {
+    if (this.version <= 3) {
+      return this.maxSupply || 0
+    }
+
+    const dropMaxAmount = await this.contract.maxAmount()
+
+    return dropMaxAmount.toNumber()
   }
 
   async maxPerMint(): Promise<number> {
