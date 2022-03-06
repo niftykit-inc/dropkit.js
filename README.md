@@ -64,6 +64,39 @@ const providers = {
 const dropkit = await DropKit.create('sdk-api-key-here', false, providers);
 ```
 
+## Use Custom Provider
+
+You can optionally pass in a custom provider to the `create` method, which will be used instead of the `Web3Provider`.
+
+```typescript
+import { ethers } from 'ethers';
+
+const provider = new ethers.providers.JsonRpcProvider(
+    'YOUR_RPC_URL',
+);
+
+const isDev = false;
+const web3ModalProviders = {
+  walletconnect: {
+    package: WalletConnectProvider,
+    options: {
+      infuraId: YOUR_INFURA_ID,
+    },
+  },
+  torus: {
+    package: Torus,
+  },
+  walletlink: {
+    package: WalletLink,
+    options: {
+      infuraId: YOUR_INFURA_ID,
+    },
+  },
+}
+
+const drop = await DropKit.create('sdk-api-key-here', isDev, web3ModalProviders, provider);
+```
+
 ## API
 
 ```typescript
