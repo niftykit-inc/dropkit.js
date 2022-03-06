@@ -60,21 +60,7 @@ export default class DropKit {
   }
 
   async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
-    const url = `${this.apiBaseUrl}/drops/${this.apiKey}/address`
-    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
-      validateStatus: (status) => status < 500,
-    })
-
-    if (resp.status === 401) {
-      const { message } = resp.data as ErrorApiResponse
-      throw new Error(message)
-    }
-
-    if (resp.status !== 200) {
-      throw new Error('Something went wrong.')
-    }
-
-    const data = resp.data
+    const data = await DropKit.getCollectionData(this.apiKey, this.dev)
 
     if (!data || !data.address || !data.collectionId) {
       throw new Error('Collection is not ready yet.')
@@ -131,6 +117,28 @@ export default class DropKit {
       handleError(error as EthereumRpcError<unknown>)
       return null
     }
+  }
+
+  static async getCollectionData(
+    key: string,
+    isDev?: boolean
+  ): Promise<DropApiResponse & ErrorApiResponse> {
+    const baseUrl = isDev ? API_ENDPOINT_DEV : API_ENDPOINT
+    const url = `${baseUrl}/drops/${key}/address`
+    const resp = await axios.get<DropApiResponse & ErrorApiResponse>(url, {
+      validateStatus: (status) => status < 500,
+    })
+
+    if (resp.status === 401) {
+      const { message } = resp.data as ErrorApiResponse
+      throw new Error(message)
+    }
+
+    if (resp.status !== 200) {
+      throw new Error('Something went wrong.')
+    }
+
+    return resp.data
   }
 
   async price(): Promise<BigNumber> {

@@ -69,6 +69,7 @@ const dropkit = await DropKit.create('sdk-api-key-here', false, providers);
 ```typescript
 class DropKit {
     static create(key: string, isDev?: boolean, providerOptions?: IProviderOptions): Promise<DropKit | null>;
+    static getCollectionData(key: string, isDev?: boolean): Promise<DropApiResponse & ErrorApiResponse>;
     price(): Promise<BigNumber>;
     maxPerMint(): Promise<number>;
     maxPerWallet(): Promise<number>;
