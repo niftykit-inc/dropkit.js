@@ -72,6 +72,7 @@ class DropKit {
     price(): Promise<BigNumber>;
     maxPerMint(): Promise<number>;
     maxPerWallet(): Promise<number>;
+    maxAmount(): Promise<number>;
     walletTokensCount(): Promise<number>;
     totalSupply(): Promise<number>;
     saleActive(): Promise<boolean>;
