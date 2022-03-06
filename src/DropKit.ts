@@ -6,6 +6,7 @@ import {
   BigNumber,
   ContractTransaction,
   ContractReceipt,
+  Signer,
 } from 'ethers'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
@@ -19,7 +20,12 @@ import {
 } from './types/api-responses'
 import Web3Modal, { IProviderOptions } from 'web3modal'
 import { PROVIDER_OPTIONS } from './config/providers'
-import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
+import {
+  JsonRpcProvider,
+  JsonRpcSigner,
+  Provider,
+  Web3Provider,
+} from '@ethersproject/providers'
 import { NETWORKS } from './config/networks'
 
 const abis: Record<number, any> = {
@@ -37,7 +43,7 @@ export default class DropKit {
   walletAddress?: string
   version: number
   maxSupply?: number
-  provider: Web3Provider = {} as Web3Provider
+  provider: Web3Provider | JsonRpcProvider = {} as Web3Provider
   signer: JsonRpcSigner = {} as JsonRpcSigner
   ethInstance: any
   chainId = 0
@@ -59,7 +65,10 @@ export default class DropKit {
     this.maxSupply = 0
   }
 
-  async init(providerOptions: IProviderOptions): Promise<DropApiResponse> {
+  async init(
+    providerOptions: IProviderOptions,
+    provider?: JsonRpcProvider
+  ): Promise<DropApiResponse> {
     const data = await DropKit.getCollectionData(this.apiKey, this.dev)
 
     if (!data || !data.address || !data.collectionId) {
@@ -74,29 +83,36 @@ export default class DropKit {
     this.maxSupply = data.version <= 3 ? data.maxAmount : 0
     const abi = abis[data.version || 1]
 
-    const web3Modal = new Web3Modal({
-      network: this.networkName,
-      providerOptions,
-    })
-    this.ethInstance = await web3Modal.connect()
-    if (!this.ethInstance) {
-      throw new Error('No provider found')
-    }
-
-    await this._initProvider()
-    await this._checkNetwork()
-
-    if (this.ethInstance.on) {
-      this.ethInstance.on('disconnect', () => {
-        window.location.reload()
+    let signerOrProvider: Signer | Provider
+    if (provider) {
+      this.provider = provider
+      signerOrProvider = provider
+    } else {
+      const web3Modal = new Web3Modal({
+        network: this.networkName,
+        providerOptions,
       })
-      this.ethInstance.on('accountsChanged', () => {
-        window.location.reload()
-      })
-    }
+      this.ethInstance = await web3Modal.connect()
+      if (!this.ethInstance) {
+        throw new Error('No provider found')
+      }
 
-    this.walletAddress = await this.signer.getAddress()
-    this.contract = new ethers.Contract(data.address, abi, this.signer)
+      await this._initProvider()
+      await this._checkNetwork()
+
+      if (this.ethInstance.on) {
+        this.ethInstance.on('disconnect', () => {
+          window.location.reload()
+        })
+        this.ethInstance.on('accountsChanged', () => {
+          window.location.reload()
+        })
+      }
+
+      this.walletAddress = await this.signer.getAddress()
+      signerOrProvider = this.signer
+    }
+    this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
     if (!this.contract) {
       throw new Error('Initialization failed.')
     }
@@ -107,11 +123,12 @@ export default class DropKit {
   static async create(
     key: string,
     isDev?: boolean,
-    providerOptions?: IProviderOptions
+    providerOptions?: IProviderOptions,
+    provider?: JsonRpcProvider
   ): Promise<DropKit | null> {
     try {
       const dropKit = new DropKit(key, isDev)
-      await dropKit.init(providerOptions || PROVIDER_OPTIONS)
+      await dropKit.init(providerOptions || PROVIDER_OPTIONS, provider)
       return dropKit
     } catch (error) {
       handleError(error as EthereumRpcError<unknown>)
