@@ -71,7 +71,7 @@ export default class DropKit {
   ): Promise<DropApiResponse> {
     const data = await DropKit.getCollectionData(this.apiKey, this.dev)
 
-    if (!data || !data.address || !data.collectionId) {
+    if (!data || !data.collectionId) {
       throw new Error('Collection is not ready yet.')
     }
 
@@ -111,6 +111,9 @@ export default class DropKit {
 
       this.walletAddress = await this.signer.getAddress()
       signerOrProvider = this.signer
+    }
+    if (!this.address) {
+      throw new Error('Smart contract is not deployed yet.')
     }
     this.contract = new ethers.Contract(data.address, abi, signerOrProvider)
     if (!this.contract) {
