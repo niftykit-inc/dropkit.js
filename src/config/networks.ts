@@ -16,3 +16,5 @@ export const NETWORKS: Record<number, Network> = {
     blockExplorerUrls: ['https://mumbai.polygonscan.com/'],
   },
 }
+
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'

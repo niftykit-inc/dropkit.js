@@ -97,6 +97,24 @@ const web3ModalProviders = {
 const drop = await DropKit.create('sdk-api-key-here', isDev, web3ModalProviders, provider);
 ```
 
+## Events
+
+```typescript
+// Minted to the connected wallet
+drop.onMintedToWallet((...args) => {
+  console.log(
+      `[onMintedToWallet] TokenId: ${args[2]}, From ${args[0]}, To ${args[1]}`
+  );
+});
+
+// Minted from any wallet
+drop.onMinted((...args) => {
+  console.log(
+      `[onMinted] TokenId: ${args[2]}, From ${args[0]}, To ${args[1]}`
+  );
+});
+```
+
 ## API
 
 ```typescript
@@ -117,5 +135,10 @@ class DropKit {
     auctionStartedAt(): Promise<number>;
     generateProof(): Promise<ProofApiResponse & ErrorApiResponse>;
     mint(quantity: number): Promise<ContractReceipt | null>;
+    onMinted(listener: Listener): Contract;
+    onMintedToWallet(listener: Listener): Contract;
+    mintedToWalletListeners(): Listener[];
+    mintedListeners(): Listener[];
+    removeAllListeners(): Contract;
 }
 ```
