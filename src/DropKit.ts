@@ -1,14 +1,24 @@
+import {
+  JsonRpcProvider,
+  JsonRpcSigner,
+  Listener,
+  Provider,
+  Web3Provider,
+} from '@ethersproject/providers'
 import axios from 'axios'
 import { EthereumRpcError } from 'eth-rpc-errors'
 import {
-  ethers,
-  Contract,
   BigNumber,
-  ContractTransaction,
+  Contract,
   ContractReceipt,
+  ContractTransaction,
+  ethers,
   Signer,
 } from 'ethers'
+import Web3Modal, { IProviderOptions } from 'web3modal'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
+import { NETWORKS, ZERO_ADDRESS } from './config/networks'
+import { PROVIDER_OPTIONS } from './config/providers'
 import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
@@ -18,15 +28,6 @@ import {
   ErrorApiResponse,
   ProofApiResponse,
 } from './types/api-responses'
-import Web3Modal, { IProviderOptions } from 'web3modal'
-import { PROVIDER_OPTIONS } from './config/providers'
-import {
-  JsonRpcProvider,
-  JsonRpcSigner,
-  Provider,
-  Web3Provider,
-} from '@ethersproject/providers'
-import { NETWORKS } from './config/networks'
 
 const abis: Record<number, any> = {
   2: DropKitCollectionABI.abi,
@@ -323,6 +324,36 @@ export default class DropKit {
       handleError(error as EthereumRpcError<unknown>)
       return null
     }
+  }
+
+  onMinted(listener: Listener): Contract {
+    const filter = this.contract.filters.Transfer(ZERO_ADDRESS)
+    return this.contract.on(filter, listener)
+  }
+
+  onMintedToWallet(listener: Listener): Contract {
+    const filter = this.contract.filters.Transfer(
+      ZERO_ADDRESS,
+      this.walletAddress
+    )
+    return this.contract.on(filter, listener)
+  }
+
+  mintedToWalletListeners(): Listener[] {
+    const filter = this.contract.filters.Transfer(
+      ZERO_ADDRESS,
+      this.walletAddress
+    )
+    return this.contract.listeners(filter)
+  }
+
+  mintedListeners(): Listener[] {
+    const filter = this.contract.filters.Transfer(ZERO_ADDRESS)
+    return this.contract.listeners(filter)
+  }
+
+  removeAllListeners(): Contract {
+    return this.contract.removeAllListeners()
   }
 
   private async _mint(
