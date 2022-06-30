@@ -1,44 +1,4 @@
 [{
-    "inputs": [{
-        "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "symbol",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxPerMint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxPerWallet",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "price",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "tokenBaseURI",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [{
         "indexed": true,
@@ -129,61 +89,6 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "_maxAmount",
-    "outputs": [{
-      "internalType": "uint256",
-      "name": "",
-      "type": "uint256"
-    }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "_maxPerMint",
-    "outputs": [{
-      "internalType": "uint256",
-      "name": "",
-      "type": "uint256"
-    }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "_maxPerWallet",
-    "outputs": [{
-      "internalType": "uint256",
-      "name": "",
-      "type": "uint256"
-    }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "_price",
-    "outputs": [{
-      "internalType": "uint256",
-      "name": "",
-      "type": "uint256"
-    }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{
-      "internalType": "uint256",
-      "name": "numberOfTokens",
-      "type": "uint256"
-    }],
-    "name": "adminMint",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
     "inputs": [{
         "internalType": "address",
         "name": "to",
@@ -198,6 +103,50 @@
     "name": "approve",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "auctionActive",
+    "outputs": [{
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "auctionDuration",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "auctionPrice",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "auctionStartedAt",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -217,6 +166,23 @@
   },
   {
     "inputs": [{
+        "internalType": "uint256[]",
+        "name": "numberOfTokens",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      }
+    ],
+    "name": "batchAirdrop",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{
       "internalType": "uint256",
       "name": "tokenId",
       "type": "uint256"
@@ -228,6 +194,28 @@
       "type": "address"
     }],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{
+        "internalType": "string",
+        "name": "name_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol_",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "treasury_",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -247,6 +235,39 @@
       "internalType": "bool",
       "name": "",
       "type": "bool"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxAmount",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxPerMint",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxPerWallet",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
     }],
     "stateMutability": "view",
     "type": "function"
@@ -301,9 +322,41 @@
   },
   {
     "inputs": [],
-    "name": "pause",
+    "name": "presaleActive",
+    "outputs": [{
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{
+        "internalType": "uint256",
+        "name": "numberOfTokens",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "presaleMint",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "price",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -363,6 +416,17 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "saleActive",
+    "outputs": [{
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [{
         "internalType": "address",
         "name": "operator",
@@ -391,21 +455,106 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "start",
+    "inputs": [{
+      "internalType": "bytes32",
+      "name": "newRoot",
+      "type": "bytes32"
+    }],
+    "name": "setMerkleRoot",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{
+      "internalType": "address",
+      "name": "newTreasury",
+      "type": "address"
+    }],
+    "name": "setTreasury",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{
+        "internalType": "uint256",
+        "name": "newMaxAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newMaxPerMint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newMaxPerWallet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newStartPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newEndPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newDuration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "presale",
+        "type": "bool"
+      }
+    ],
+    "name": "startAuction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{
+        "internalType": "uint256",
+        "name": "newMaxAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newMaxPerMint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newMaxPerWallet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "presale",
+        "type": "bool"
+      }
+    ],
+    "name": "startSale",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "started",
-    "outputs": [{
-      "internalType": "bool",
-      "name": "",
-      "type": "bool"
-    }],
-    "stateMutability": "view",
+    "name": "stopSale",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -487,6 +636,17 @@
   },
   {
     "inputs": [],
+    "name": "totalRevenue",
+    "outputs": [{
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "totalSupply",
     "outputs": [{
       "internalType": "uint256",
@@ -527,6 +687,17 @@
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "treasury",
+    "outputs": [{
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }],
+    "stateMutability": "view",
     "type": "function"
   },
   {
