@@ -129,10 +129,6 @@ class DropKit {
     totalSupply(): Promise<number>;
     saleActive(): Promise<boolean>;
     presaleActive(): Promise<boolean>;
-    auctionActive(): Promise<boolean>;
-    auctionDuration(): Promise<number>;
-    auctionPrice(): Promise<BigNumber>;
-    auctionStartedAt(): Promise<number>;
     generateProof(): Promise<ProofApiResponse & ErrorApiResponse>;
     mint(quantity: number): Promise<ContractReceipt | null>;
     onMinted(listener: Listener): Contract;

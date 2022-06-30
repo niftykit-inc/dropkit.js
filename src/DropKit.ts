@@ -236,40 +236,6 @@ export default class DropKit {
     return await this.contract.presaleActive()
   }
 
-  async auctionActive(): Promise<boolean> {
-    if (this.version < 4) {
-      return false
-    }
-    return await this.contract.auctionActive()
-  }
-
-  async auctionDuration(): Promise<number> {
-    if (this.version < 4) {
-      return 0
-    }
-    const duration: BigNumber = await this.contract.auctionDuration()
-
-    return duration.toNumber()
-  }
-
-  async auctionPrice(): Promise<BigNumber> {
-    if (this.version < 4) {
-      return BigNumber.from(0)
-    }
-    const price: BigNumber = await this.contract.auctionPrice()
-
-    return price
-  }
-
-  async auctionStartedAt(): Promise<number> {
-    if (this.version < 4) {
-      return 0
-    }
-    const epoch: BigNumber = await this.contract.auctionStartedAt()
-
-    return epoch.toNumber()
-  }
-
   async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
     const { data } = await axios.post<ProofApiResponse & ErrorApiResponse>(
       `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
@@ -291,7 +257,6 @@ export default class DropKit {
 
       const presaleActive = await this.presaleActive()
       const saleActive = await this.saleActive()
-      const auctionActive = await this.auctionActive()
 
       const tokensCount = await this.walletTokensCount()
       const maxPerWallet = await this.maxPerWallet()
@@ -302,13 +267,11 @@ export default class DropKit {
         )
       }
 
-      if (!saleActive && !presaleActive && !auctionActive) {
+      if (!saleActive && !presaleActive) {
         throw new Error('Collection is not active')
       }
 
-      const price = auctionActive
-        ? await this.auctionPrice()
-        : await this.price()
+      const price = await this.price()
       const amount = price.mul(quantity)
 
       // Presale minting
