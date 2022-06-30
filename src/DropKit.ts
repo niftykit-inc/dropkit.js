@@ -19,20 +19,23 @@ import Web3Modal, { IProviderOptions } from 'web3modal'
 import { API_ENDPOINT, API_ENDPOINT_DEV } from './config/endpoint'
 import { NETWORKS, ZERO_ADDRESS } from './config/networks'
 import { PROVIDER_OPTIONS } from './config/providers'
-import DropKitCollectionABI from './contracts/DropKitCollection.json'
 import DropKitCollectionV2ABI from './contracts/DropKitCollectionV2.json'
 import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
+import DropKitCollectionV4ABI from './contracts/DropKitCollectionV4.json'
+import DropKitCollectionV5ABI from './contracts/DropKitCollectionV5.json'
 import { handleError } from './errors/utils'
 import {
   DropApiResponse,
   ErrorApiResponse,
   ProofApiResponse,
+  ProofApiResponseV2,
 } from './types/api-responses'
 
 const abis: Record<number, any> = {
-  2: DropKitCollectionABI.abi,
-  3: DropKitCollectionV2ABI.abi,
-  4: DropKitCollectionV3ABI.abi,
+  2: DropKitCollectionV2ABI,
+  3: DropKitCollectionV3ABI,
+  4: DropKitCollectionV4ABI,
+  5: DropKitCollectionV5ABI,
 }
 
 export default class DropKit {
@@ -82,7 +85,7 @@ export default class DropKit {
     this.networkName = data.networkName
     this.chainId = data.chainId
     this.maxSupply = data.version <= 3 ? data.maxAmount : 0
-    const abi = abis[data.version || 1]
+    const abi = abis[data.version || 2]
 
     let signerOrProvider: Signer | Provider
     if (provider) {
@@ -227,7 +230,7 @@ export default class DropKit {
       return false
     }
 
-    // Unfortunately, the presaleActive() method is not available in the v2 contracts
+    // Unfortunately, the presaleActive() method is not available in the v3 contracts
     // So we need to assume that the presale is active and check with generateProof()
     if (this.version === 3) {
       return !(await this.saleActive())
@@ -239,6 +242,20 @@ export default class DropKit {
   async generateProof(): Promise<ProofApiResponse & ErrorApiResponse> {
     const { data } = await axios.post<ProofApiResponse & ErrorApiResponse>(
       `${this.apiBaseUrl}/drops/list/${this.collectionId}`,
+      {
+        wallet: this.walletAddress,
+      },
+      {
+        validateStatus: (status) => status < 500,
+      }
+    )
+
+    return data
+  }
+
+  async generateProofV2(): Promise<ProofApiResponseV2 & ErrorApiResponse> {
+    const { data } = await axios.post<ProofApiResponseV2 & ErrorApiResponse>(
+      `${this.apiBaseUrl}/v2/drops/list/${this.collectionId}`,
       {
         wallet: this.walletAddress,
       },
@@ -276,9 +293,11 @@ export default class DropKit {
 
       // Presale minting
       if (presaleActive) {
-        // Backwards compatibility with v2 contracts:
+        // Backwards compatibility with v3 contracts:
         // If the public sale is not active, we can still try mint with the presale
-        return await this._presaleMint(quantity, amount)
+        return this.version <= 4
+          ? await this._presaleMint(quantity, amount)
+          : await this._presaleMintV2(quantity, amount)
       }
 
       // Regular minting
@@ -336,17 +355,38 @@ export default class DropKit {
   ): Promise<ContractReceipt> {
     const data = await this.generateProof()
     if (data.message) {
-      // Backwards compatibility for v2 contracts
+      // Backwards compatibility for v3 contracts
       if (this.version === 3) {
         throw new Error(
           'Collection is not active or your wallet is not part of presale.'
         )
       }
-      throw new Error('Your wallet is not part of presale.')
+      throw new Error(data.message)
     }
 
     const trx: ContractTransaction = await this.contract.presaleMint(
       quantity,
+      data.proof,
+      {
+        value: amount,
+      }
+    )
+
+    return trx.wait()
+  }
+
+  private async _presaleMintV2(
+    quantity: number,
+    amount: BigNumber
+  ): Promise<ContractReceipt> {
+    const data = await this.generateProofV2()
+    if (data.message) {
+      throw new Error(data.message)
+    }
+
+    const trx: ContractTransaction = await this.contract.presaleMint(
+      quantity,
+      data.allowed,
       data.proof,
       {
         value: amount,

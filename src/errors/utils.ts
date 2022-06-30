@@ -16,8 +16,12 @@ export function handleError(e: EthereumRpcError<unknown>): void {
 
   // ideally we would check for the error code here, but the same error code: -32000 (Bad Input)
   // is used for more than one error type
-  if (msg.includes('err: insufficient funds for gas * price + value')) {
+  if (msg.includes('insufficient funds')) {
     throw new Error('Your wallet does not have enough balance.')
+  }
+
+  if (msg.includes('Exceeded max per wallet')) {
+    throw new Error('Exceeded max per wallet')
   }
 
   if ((e.code as unknown as string) === 'CALL_EXCEPTION') {
