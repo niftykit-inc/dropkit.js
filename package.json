@@ -1,6 +1,6 @@
 {
   "name": "dropkit.js",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "NiftyKit.js SDK",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
