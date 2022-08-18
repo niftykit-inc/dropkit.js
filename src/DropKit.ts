@@ -275,15 +275,6 @@ export default class DropKit {
       const presaleActive = await this.presaleActive()
       const saleActive = await this.saleActive()
 
-      const tokensCount = await this.walletTokensCount()
-      const maxPerWallet = await this.maxPerWallet()
-
-      if (tokensCount + quantity > maxPerWallet) {
-        throw new Error(
-          `You can't mint more than ${maxPerWallet} tokens on your wallet`
-        )
-      }
-
       if (!saleActive && !presaleActive) {
         throw new Error('Collection is not active')
       }
