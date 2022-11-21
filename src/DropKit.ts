@@ -24,6 +24,7 @@ import DropKitCollectionV3ABI from './contracts/DropKitCollectionV3.json'
 import DropKitCollectionV4ABI from './contracts/DropKitCollectionV4.json'
 import DropKitCollectionV5ABI from './contracts/DropKitCollectionV5.json'
 import DropKitCollectionV6ABI from './contracts/DropKitCollectionV6.json'
+import DropKitCollectionV7ABI from './contracts/DropKitCollectionV7.json'
 import { handleError } from './errors/utils'
 import {
   DropApiResponse,
@@ -38,6 +39,7 @@ const abis: Record<number, any> = {
   4: DropKitCollectionV4ABI,
   5: DropKitCollectionV5ABI,
   6: DropKitCollectionV6ABI,
+  7: DropKitCollectionV7ABI,
 }
 
 export default class DropKit {
